@@ -237,3 +237,25 @@ bool World::catWinsOnSpace(Point2D point) {
   auto sideOver2 = sideSize / 2;
   return abs(point.x) == sideOver2 || abs(point.y) == sideOver2;
 }
+
+bool World::isBorder(const Point2D& p) const {
+  int halfSideSize = sideSize / 2;
+  return (p.x == -halfSideSize || p.x == halfSideSize - 1 || p.y == -halfSideSize || p.y == halfSideSize - 1);
+}
+
+Point2D World::reverse(const Point2D& dir) const {
+  return {-dir.x, -dir.y};
+}
+
+bool World::isBlocked(const Point2D& p) const {
+  // Check if the given position is within the bounds of the world
+  if (!isWithinBounds(p)) {
+    return false; // Out of bounds, treat it as not blocked
+  }
+
+  // Calculate the index in the worldState vector
+  int index = (p.y + sideSize / 2) * sideSize + (p.x + sideSize / 2);
+
+  // Return the blocked state
+  return worldState[index];
+}
