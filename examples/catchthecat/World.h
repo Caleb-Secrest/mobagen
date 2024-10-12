@@ -132,7 +132,7 @@ public:
     return visitable;
   }
 
-  bool isWithinBounds(const Point2D& p) {
+  bool isWithinBounds(const Point2D& p) const{
     int halfSize = sideSize / 2;
     return p.x >= -halfSize && p.x < halfSize && p.y >= -halfSize && p.y < halfSize;
   }
@@ -140,6 +140,8 @@ public:
   bool isBorder(const Point2D& p) const;
 
   Point2D reverse(const Point2D& dir) const;
+
+  bool isBlocked(const Point2D& p) const;
 
 };
 
