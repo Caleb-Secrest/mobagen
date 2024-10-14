@@ -2,68 +2,65 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <queue>
-#include <algorithm>
 #include "World.h"
+#include <vector>
+
 using namespace std;
 
-std::vector<Point2D> Agent::generatePath(World* w) {
-    unordered_map<Point2D, Point2D> cameFrom;  // to build the flowfield and build the path
-    queue<Point2D> frontier;                   // to store next ones to visit
-    unordered_set<Point2D> frontierSet;        // OPTIMIZATION to check faster if a point is in the queue
-    unordered_map<Point2D, bool> visited;      // use .at() to get data; if the element doesn't exist, [] will give wrong results
+struct a_star_node {
+    Point2D p;
+    int h, accumDist;
 
-    // bootstrap state
+    bool operator<(const a_star_node& other) const {
+        return (h + accumDist) > (other.h + other.accumDist);
+    }
+};
+
+int calculateHeuristics(const Point2D& p, int gridSize) {
+    return min(gridSize - abs(p.x), gridSize - abs(p.y));
+}
+
+vector<Point2D> Agent::generatePath(World* w) {
+    unordered_map<Point2D, Point2D> cameFrom;
+    priority_queue<a_star_node> frontier;
+    unordered_set<Point2D> frontierSet;
+    unordered_set<Point2D> visited;
+
     auto catPos = w->getCat();
-    frontier.push(catPos);
+    frontier.push({catPos, 0, 0});
     frontierSet.insert(catPos);
-    Point2D borderExit = Point2D::INFINITE;  // if at the end of the loop we don't find a border, we have to return random points
+    Point2D exit = Point2D::INFINITE;
+
+    int gridSize = w->getWorldSideSize() / 2;
 
     while (!frontier.empty()) {
-        // get the current from frontier
-        Point2D current = frontier.front();
+        a_star_node currPos = frontier.top();
         frontier.pop();
-        frontierSet.erase(current);  // remove the current from frontierSet
-        visited[current] = true;      // mark current as visited
+        frontierSet.erase(currPos.p);
+        visited.insert(currPos.p);
 
-        // Get visitable neighbors
-        vector<Point2D> neighbors = w->getVisitablePositions(current);
+        if (currPos.p.x == -(gridSize) || currPos.p.x == gridSize || currPos.p.y == -(gridSize) || currPos.p.y == gridSize) {
+            exit = currPos.p;
+            break;
+        }
+
+        vector<Point2D> neighbors = w->neighbors(currPos.p);
 
         for (const Point2D& neighbor : neighbors) {
-            // Skip if the neighbor has already been visited or is in the frontier
-            if (visited[neighbor] || frontierSet.count(neighbor)) {
-                continue;
+            if (!w->getContent(neighbor) && visited.find(neighbor) == visited.end() && w->isValidPosition(neighbor)) {
+                cameFrom[neighbor] = currPos.p;
+                a_star_node neighborNode = {neighbor, calculateHeuristics(neighbor, gridSize), currPos.accumDist + 1};
+                frontier.push(neighborNode);
+                frontierSet.insert(neighbor);
             }
-
-            // Set the cameFrom for neighbor
-            cameFrom[neighbor] = current;
-
-            // If the neighbor is a border, update borderExit and break the loop
-            if (w->isBorder(neighbor)) {
-                borderExit = neighbor;
-                break; // Break the loop since we found a border
-            }
-
-            // Enqueue the neighbor to frontier and frontierSet
-            frontier.push(neighbor);
-            frontierSet.insert(neighbor);
-        }
-
-        if (borderExit != Point2D::INFINITE) {
-            break; // Exit while loop if a border is found
         }
     }
 
-    // If the border is not infinity, build the path from border to the cat using the cameFrom map
-    if (borderExit != Point2D::INFINITE) {
-        vector<Point2D> path;
-        for (Point2D at = borderExit; at != catPos; at = cameFrom[at]) {
-            path.push_back(at);
-        }
-        path.push_back(catPos); // add the cat's position
-        reverse(path.begin(), path.end()); // Reverse the path to get from cat to border
-        return path;
+    vector<Point2D> path;
+    while (exit != catPos && exit != Point2D::INFINITE) {
+        path.push_back(exit);
+        exit = cameFrom[exit];
     }
 
-    // If there isn't a reachable border, just return an empty vector
-    return vector<Point2D>();
+    return path;
 }

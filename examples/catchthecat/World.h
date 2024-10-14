@@ -30,6 +30,11 @@ private:
 
   // size of the side of the map
   int sideSize = 0;
+  // todo: optimization make the world state only use 16 Bytes.
+  // hints on how to do it:
+  // the world have 11x11 size, so it needs 121 bits to represent it. in other words we need 16 bytes to fully represent it. bit representation: 0
+  // empty, 1 blocked. to represent the cat position we need only one byte. 4 bits for X and another 4 for Y create a structure holding one byte for
+  // cat position and 16 bytes for the blocked map.
 
   // clears the world
   void clearWorld();
@@ -101,43 +106,6 @@ public:
     n.push_back(SE(point));
     return n;
   }
-
-  std::vector<Point2D> getVisitablePositions(const Point2D& current)
-  {
-    std::vector<Point2D> visitable;
-
-    std::vector<Point2D> directions = {
-    {0, 1},   // North
-    {1, 1},   // Northeast
-    {1, 0},   // East
-    {1, -1},  // Southeast
-    {0, -1},  // South
-    {-1, -1}, // Southwest
-    {-1, 0},  // West
-    {-1, 1}   // Northwest
-    };
-
-    for (const auto& dir :directions) {
-      Point2D neighbor = current + dir;
-      if (isWithinBounds(neighbor) && !getContent(neighbor)) {
-      visitable.push_back(neighbor);
-      }
-    }
-
-    return visitable;
-  }
-
-  bool isWithinBounds(const Point2D& p) const{
-    int halfSize = sideSize / 2;
-    return p.x >= -halfSize && p.x < halfSize && p.y >= -halfSize && p.y < halfSize;
-  }
-
-  bool isBorder(const Point2D& p) const;
-
-  Point2D reverse(const Point2D& dir) const;
-
-  bool isBlocked(const Point2D& p) const;
-
 };
 
 #endif  // WORLD_H
